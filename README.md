@@ -13,8 +13,7 @@ Middleware que permite a un GPT personalizado (ChatGPT) animar una imagen usando
 
 | Variable | Obligatoria | Descripción |
 |---|---|---|
-| `KLING_ACCESS_KEY` | Sí | Access Key generada en kling.ai/dev/api-key |
-| `KLING_SECRET_KEY` | Sí | Secret Key generada en kling.ai/dev/api-key |
+| `KLING_API_KEY` | Sí | API Key generada en kling.ai/dev/api-key |
 | `BRIDGE_API_KEY` | Recomendada | Una clave que tú inventas para proteger este servicio. El GPT debe enviarla en el header `X-API-Key`. Sin esto, cualquiera que descubra la URL pública podría gastar tu saldo de Kling. |
 | `KLING_BASE_URL` | No | Por defecto `https://api.klingai.com/v1`. Revisa en tu cuenta cuál es tu base URL real. |
 

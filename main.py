@@ -15,8 +15,7 @@ Por qué dos endpoints y no uno solo que "espere":
   "succeed" o "failed".
 
 Variables de entorno requeridas:
-  KLING_ACCESS_KEY   -> Access Key que generaste en kling.ai/dev/api-key
-  KLING_SECRET_KEY   -> Secret Key que generaste en kling.ai/dev/api-key
+  KLING_API_KEY      -> la API Key que generaste en kling.ai/dev/api-key
   BRIDGE_API_KEY     -> una clave que TÚ inventas, para proteger este middleware
                          (el GPT la manda en el header "X-API-Key"). Sin esto,
                          cualquiera que encuentre la URL podría gastar tu saldo de Kling.
@@ -28,16 +27,13 @@ Variables opcionales:
 """
 
 import os
-import time
 from typing import Optional
 
 import httpx
-import jwt
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-KLING_ACCESS_KEY = os.environ.get("KLING_ACCESS_KEY", "")
-KLING_SECRET_KEY = os.environ.get("KLING_SECRET_KEY", "")
+KLING_API_KEY = os.environ.get("KLING_API_KEY", "")
 BRIDGE_API_KEY = os.environ.get("BRIDGE_API_KEY", "")
 KLING_BASE_URL = os.environ.get("KLING_BASE_URL", "https://api.klingai.com/v1")
 
@@ -57,17 +53,10 @@ def check_bridge_key(x_api_key: Optional[str]) -> None:
         raise HTTPException(status_code=401, detail="X-API-Key inválida o ausente.")
 
 
-def make_kling_jwt() -> str:
-    """Genera el JWT de corta duración que exige la API de Kling en cada request."""
-    if not KLING_ACCESS_KEY or not KLING_SECRET_KEY:
-        raise HTTPException(
-            status_code=500,
-            detail="Faltan KLING_ACCESS_KEY / KLING_SECRET_KEY en el servidor.",
-        )
-    now = int(time.time())
-    payload = {"iss": KLING_ACCESS_KEY, "exp": now + 1800, "nbf": now - 5}
-    token = jwt.encode(payload, KLING_SECRET_KEY, algorithm="HS256", headers={"alg": "HS256", "typ": "JWT"})
-    return token
+def kling_headers() -> dict:
+    if not KLING_API_KEY:
+        raise HTTPException(status_code=500, detail="Falta KLING_API_KEY en el servidor.")
+    return {"Authorization": f"Bearer {KLING_API_KEY}"}
 
 
 class AnimateRequest(BaseModel):
@@ -106,10 +95,8 @@ def animate(body: AnimateRequest, x_api_key: Optional[str] = Header(None)):
     if body.model_name:
         kling_payload["model_name"] = body.model_name
 
-    headers = {
-        "Authorization": f"Bearer {make_kling_jwt()}",
-        "Content-Type": "application/json",
-    }
+    headers = kling_headers()
+    headers["Content-Type"] = "application/json"
 
     with httpx.Client(timeout=30) as client:
         resp = client.post(f"{KLING_BASE_URL}/videos/image2video", json=kling_payload, headers=headers)
@@ -132,7 +119,7 @@ def animate(body: AnimateRequest, x_api_key: Optional[str] = Header(None)):
 def status(task_id: str, x_api_key: Optional[str] = Header(None)):
     check_bridge_key(x_api_key)
 
-    headers = {"Authorization": f"Bearer {make_kling_jwt()}"}
+    headers = kling_headers()
 
     with httpx.Client(timeout=30) as client:
         resp = client.get(f"{KLING_BASE_URL}/videos/image2video/{task_id}", headers=headers)
