@@ -1,0 +1,85 @@
+openapi: 3.1.0
+info:
+  title: Kling Bridge
+  description: Anima una imagen ya editada usando Kling AI (image-to-video).
+  version: 1.0.0
+servers:
+  - url: https://TU-SERVICIO.onrender.com
+paths:
+  /animate:
+    post:
+      operationId: animateImage
+      summary: Envía una imagen a Kling para animarla. Devuelve un task_id (no el video todavía).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_url, prompt]
+              properties:
+                image_url:
+                  type: string
+                  description: URL pública de la imagen ya editada.
+                prompt:
+                  type: string
+                  description: Descripción del movimiento/animación deseado.
+                negative_prompt:
+                  type: string
+                duration:
+                  type: string
+                  enum: ["5", "10"]
+                  default: "5"
+                mode:
+                  type: string
+                  enum: [std, pro]
+                  default: std
+      responses:
+        "200":
+          description: Tarea creada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                  task_status:
+                    type: string
+  /status/{task_id}:
+    get:
+      operationId: getAnimationStatus
+      summary: Consulta el estado de una tarea de animación y la URL del video cuando ya está lista.
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Estado de la tarea.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                  task_status:
+                    type: string
+                    description: "submitted | processing | succeed | failed"
+                  video_url:
+                    type: string
+                    nullable: true
+                  message:
+                    type: string
+                    nullable: true
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+security:
+  - ApiKeyAuth: []
